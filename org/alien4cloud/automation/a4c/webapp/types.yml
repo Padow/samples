@@ -9,6 +9,7 @@ imports:
   - tosca-normative-types:1.0.0-ALIEN14
   - org.alien4cloud.automation.a4c.pub:1.4.0-SNAPSHOT
   - org.alien4cloud.lang.java.jdk.linux:1.4.0-SNAPSHOT
+  - org.alien4cloud.consul:1.4.0-SNAPSHOT
   - org.alien4cloud.storage.elasticsearch.pub:1.4.0-SNAPSHOT
   - org.alien4cloud.lang.java.jmx.jolokia:1.4.0-SNAPSHOT
 
@@ -148,7 +149,6 @@ node_types:
       alien_url: { concat: [get_property: [SELF, rest, protocol], "://", get_attribute: [HOST, public_ip_address], ":", get_property: [SELF, rest, port]] }
 
 relationship_types:
-
   org.alien4cloud.consul.relationships.ConnectToConsulAgent:
     derived_from: tosca.relationships.ConnectsTo
     valid_target_types: [org.alien4cloud.consul.capabilities.ConsulAgent]
