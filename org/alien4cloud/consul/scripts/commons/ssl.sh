@@ -103,6 +103,7 @@ install_CAcertificate() {
 	distro=get_os_distribution
 	CAfile=$1
 	echo "Installing CA ${CAfile} into the system..."
+	echo "OS is : "$distro
 	if [[ $distro == "centos" ]]; then
 		sudo cp $CAfile /etc/pki/ca-trust/source/anchors/_ca.crt
 		sudo update-ca-trust extract
