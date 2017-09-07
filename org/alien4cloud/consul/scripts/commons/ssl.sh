@@ -73,8 +73,8 @@ generateKeyAndStore() {
 install_CAcertificate() {
 	CAfile=$1
 	echo "Installing CA ${CAfile} into the system..."
-	sudo mkdir /usr/local/share/ca-certificates
-	sudo cp $CAfile /usr/local/share/ca-certificates/_ca.crt
-	sudo update-ca-certificates
+	
+	sudo cp $CAfile /etc/pki/ca-trust/source/anchors/_ca.crt
+	sudo update-ca-trust extract
 	echo "CA ${CAfile} installed"
 }
