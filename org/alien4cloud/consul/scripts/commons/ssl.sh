@@ -100,7 +100,7 @@ get_os_distribution () {
 # ARGS:
 # - $1 path to the CA to install
 install_CAcertificate() {
-	distro=get_os_distribution
+	distro=$(get_os_distribution)
 	CAfile=$1
 	echo "Installing CA ${CAfile} into the system..."
 	echo "OS is : "$distro
