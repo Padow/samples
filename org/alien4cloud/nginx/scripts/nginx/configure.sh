@@ -35,6 +35,7 @@ if [ "$TARGET_PROTOCOL" == "https" -o "$FRONT_PROTOCOL" == "https" ]; then
 
   #   sudo rm -rf $TEMP_DIR
 else
+  sudo mkdir /etc/nginx/sites-enabled
   sudo cp -f $config/nginx.default /etc/nginx/sites-enabled/default
 fi
 
