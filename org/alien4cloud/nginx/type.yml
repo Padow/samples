@@ -7,6 +7,7 @@ metadata:
 
 imports:
   - tosca-normative-types:1.0.0-ALIEN14
+  - org.alien4cloud.consul:1.4.0-SNAPSHOT
 
 node_types:
   org.alien4cloud.nginx.nodes.Nginx:
@@ -54,13 +55,13 @@ node_types:
         start:
           implementation: scripts/nginx/start.sh
     artifacts:
-      - config: 
+      - config:
           file: config/nginx
           type: tosca.artifacts.File
-      - ssl: 
+      - ssl:
           file: ssl
           type: tosca.artifacts.File
-      - commons: 
+      - commons:
           file: scripts/commons
           type: tosca.artifacts.File
 
@@ -76,7 +77,7 @@ node_types:
       consul:
         type: org.alien4cloud.consul.capabilities.ConsulClient
     requirements:
-      - consul: 
+      - consul:
           capability: org.alien4cloud.consul.capabilities.ConsulAgent
           relationship: org.alien4cloud.consul.relationships.ConnectToConsulAgent
           occurrences: [ 1, 1 ]
@@ -119,12 +120,12 @@ node_types:
         start:
           implementation: scripts/consul_template/start.sh
     artifacts:
-      - config: 
+      - config:
           file: config/consul_template
           type: tosca.artifacts.File
-      - ssl: 
+      - ssl:
           file: ssl
           type: tosca.artifacts.File
-      - commons: 
+      - commons:
           file: scripts/commons
           type: tosca.artifacts.File
