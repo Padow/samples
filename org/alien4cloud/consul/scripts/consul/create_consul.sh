@@ -18,7 +18,7 @@ CONSUL_TMP_ZIP=/tmp/consul.zip
 download "consul" "${CONSUL_DOWNLOAD_URL}" ${CONSUL_TMP_ZIP}
 
 echo "Unzipping consul package to /usr/bin"
-sudo unzip -o ${CONSUL_TMP_ZIP} -d /usr/local/bin
+sudo unzip -o ${CONSUL_TMP_ZIP} -d /usr/bin
 echo "Unzipped consul package to /usr/bin"
 
 install_CAcertificate $ssl/ca.pem
