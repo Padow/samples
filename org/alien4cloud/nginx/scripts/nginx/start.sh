@@ -3,7 +3,7 @@
 start_nginx () {
   if [[ "$(which yum)" != "" ]]
     then
-    sudo systemctl start nginx
+    sudo systemctl reload nginx
   elif [[ "$(which apt-get)" != "" ]]
     then
     sudo /etc/init.d/nginx reload
