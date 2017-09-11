@@ -1,3 +1,3 @@
 #!/bin/bash
-sudo systemctl reload nginx
+sudo systemctl restart nginx
 nohup sudo bash -c '/var/lib/consul_template/consul-template -config /etc/consul_template/consul_template.conf >> /var/log/consul_template/consul_template.log 2>&1' >> /dev/null 2>&1 &
