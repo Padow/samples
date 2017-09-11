@@ -1,7 +1,7 @@
 #!/bin/bash -e
 source $commons/commons.sh
 source $commons/ssl.sh
-sudo setsebool -P httpd_can_network_connect true
+setsebool -P httpd_can_network_connect true
 require_envs "LISTEN_PORT SERVER_NAME TARGET_PROTOCOL FRONT_PROTOCOL"
 
 # replace the default web site
