@@ -1,7 +1,7 @@
 #!/bin/bash -e
 source $commons/commons.sh
 source $commons/ssl.sh
-setsebool -P httpd_can_network_connect true
+
 require_envs "LISTEN_PORT SERVER_NAME TARGET_PROTOCOL FRONT_PROTOCOL"
 
 # replace the default web site
@@ -42,3 +42,4 @@ fi
 
 sudo sed -i -e "s/%LISTEN_PORT%/${LISTEN_PORT}/g" /etc/nginx/sites-enabled/default
 sudo sed -i -e "s/%SERVER_NAME%/${SERVER_NAME}/g" /etc/nginx/sites-enabled/default
+sudo sed -i -e "s/SELINUX=enforcing/SELINUX=disabled/g" /etc/sysconfig/selinux
