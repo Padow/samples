@@ -44,6 +44,9 @@ sudo sed -i -e "s/%LISTEN_PORT%/${LISTEN_PORT}/g" /etc/nginx/sites-enabled/defau
 sudo sed -i -e "s/%SERVER_NAME%/${SERVER_NAME}/g" /etc/nginx/sites-enabled/default
 
 # sudo sed -i -e "s/SELINUX=enforcing/SELINUX=disabled/g" /etc/sysconfig/selinux
-# sudo cp /etc/nginx/sites-enabled/default /etc/nginx/conf.d/reverseproxy.conf
+sudo cp /etc/nginx/sites-enabled/default /etc/nginx/conf.d/reverseproxy.conf
+sudo setsebool -P httpd_can_network_connect true
+sudo systemctl restart nginx
+
 # sudo cat /var/log/audit/audit.log | grep nginx | grep denied | audit2allow -M /home/ec2-user/nginxlocalconf
 # sudo semodule -i /home/ec2-user/nginxlocalconf.pp
