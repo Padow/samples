@@ -36,6 +36,8 @@ if [ "$TARGET_PROTOCOL" == "https" -o "$FRONT_PROTOCOL" == "https" ]; then
 
   #   sudo rm -rf $TEMP_DIR
 else
+  sudo mkdir /etc/nginx/sites-enabled
+  sudo touch /etc/nginx/sites-enabled/default
   sudo cp -f $config/nginx.default /etc/nginx/conf.d/reverseproxy.conf
 fi
 
