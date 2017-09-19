@@ -37,11 +37,11 @@ if [ "$TARGET_PROTOCOL" == "https" -o "$FRONT_PROTOCOL" == "https" ]; then
   #   sudo rm -rf $TEMP_DIR
 else
   # sudo mkdir /etc/nginx/sites-enabled
-  sudo cp -f $config/nginx.default /etc/nginx/conf.d/reverseproxy.conf
+  sudo cp -f $config/nginx.default /etc/nginx/conf.d/default
   # sudo cp -f $config/nginx.default /etc/nginx/sites-enabled/default
 fi
 
-sudo sed -i -e "s/%LISTEN_PORT%/${LISTEN_PORT}/g" /etc/nginx/conf.d/reverseproxy.conf
-sudo sed -i -e "s/%SERVER_NAME%/${SERVER_NAME}/g" /etc/nginx/conf.d/reverseproxy.conf
+sudo sed -i -e "s/%LISTEN_PORT%/${LISTEN_PORT}/g" /etc/nginx/conf.d/default
+sudo sed -i -e "s/%SERVER_NAME%/${SERVER_NAME}/g" /etc/nginx/conf.d/default
 
 sudo setsebool -P httpd_can_network_connect true
