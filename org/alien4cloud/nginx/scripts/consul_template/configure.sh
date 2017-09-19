@@ -27,7 +27,14 @@ sudo sed -i -e "s/%FRONT_PROTOCOL%/${FRONT_PROTOCOL}/g" $TEMPLATE_PATH
 sudo sed -i -e "s/%TARGET_PROTOCOL%/${TARGET_PROTOCOL}/g" $TEMPLATE_PATH
 
 # evaluate and put the consul-template config
-sudo cp $config/consul_template.conf $CONF_PATH/consul_template.conf
+if [[ "$(which yum)" != "" ]]
+	then
+	sudo cp $config/consul_template.centos.conf $CONF_PATH/consul_template.conf
+elif [[ "$(which apt-get)" != "" ]]
+	then
+	sudo cp $config/consul_template.conf $CONF_PATH/consul_template.conf
+fi
+
 sudo sed -i -e "s/%TLS_ENABLED%/${TLS_ENABLED}/g" $CONF_PATH/consul_template.conf
 sudo sed -i -e "s/%AGENT_API_PORT%/${AGENT_API_PORT}/g" $CONF_PATH/consul_template.conf
 
