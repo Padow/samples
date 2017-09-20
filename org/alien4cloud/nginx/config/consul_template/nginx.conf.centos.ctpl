@@ -1,6 +1,6 @@
 {{ if key "service/a4c/leader" }}
   {{ range ls "service/a4c" }}
-    {{ if and (.Session) (eq .Key "service/a4c/leader") }}
+    {{ if and (.Session) (eq .Key "leader") }}
 
 server {
         listen %LISTEN_PORT%;
