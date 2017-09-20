@@ -4,7 +4,7 @@ source $commons/ssl.sh
 
 require_envs "LISTEN_PORT SERVER_NAME TARGET_PROTOCOL FRONT_PROTOCOL"
 
-CONF_FILE="reverseproxy.conf"
+CONF_FILE="default"
 
 # replace the default web site
 sudo cp -f $config/index.html /usr/share/nginx/html/
