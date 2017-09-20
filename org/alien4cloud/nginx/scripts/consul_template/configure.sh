@@ -16,7 +16,14 @@ require_envs "AGENT_API_PORT AGENT_IP TLS_ENABLED"
 
 # generate the nginx config template
 TEMPLATE_PATH="${CONF_PATH}/nginx.conf.ctpl"
-sudo cp $config/nginx.conf.ctpl ${TEMPLATE_PATH}
+if [[ "$(which yum)" != "" ]]
+	then
+	sudo cp $config/nginx.conf.centos.ctpl ${TEMPLATE_PATH}
+elif [[ "$(which apt-get)" != "" ]]
+	then
+	sudo cp $config/nginx.conf.ctpl ${TEMPLATE_PATH}
+fi
+
 if [ "$FRONT_PROTOCOL" == "https" ]; then
 	sudo cp $config/nginx.ssl.ctpl ${TEMPLATE_PATH}
 fi
