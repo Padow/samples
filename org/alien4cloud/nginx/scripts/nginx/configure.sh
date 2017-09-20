@@ -4,6 +4,8 @@ source $commons/ssl.sh
 
 require_envs "LISTEN_PORT SERVER_NAME TARGET_PROTOCOL FRONT_PROTOCOL"
 
+CONF_FILE="reverseproxy.conf"
+
 # replace the default web site
 sudo cp -f $config/index.html /usr/share/nginx/html/
 sudo cp -f $config/alien4cloud-logo.png /usr/share/nginx/html/
@@ -36,10 +38,10 @@ if [ "$TARGET_PROTOCOL" == "https" -o "$FRONT_PROTOCOL" == "https" ]; then
 
   #   sudo rm -rf $TEMP_DIR
 else
-  sudo cp -f $config/nginx.default /etc/nginx/conf.d/default
+  sudo cp -f $config/nginx.default /etc/nginx/conf.d/${CONF_FILE}
 fi
 
-sudo sed -i -e "s/%LISTEN_PORT%/${LISTEN_PORT}/g" /etc/nginx/conf.d/default
-sudo sed -i -e "s/%SERVER_NAME%/${SERVER_NAME}/g" /etc/nginx/conf.d/default
+sudo sed -i -e "s/%LISTEN_PORT%/${LISTEN_PORT}/g" /etc/nginx/conf.d/${CONF_FILE}
+sudo sed -i -e "s/%SERVER_NAME%/${SERVER_NAME}/g" /etc/nginx/conf.d/${CONF_FILE}
 
 sudo setsebool -P httpd_can_network_connect true
