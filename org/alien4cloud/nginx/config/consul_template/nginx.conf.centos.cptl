@@ -1,0 +1,13 @@
+{{ if key "service/a4c/leader" }}
+server {
+        listen %LISTEN_PORT%;
+        server_name %SERVER_NAME%;
+        location / {
+                proxy_pass http://{{key "service/a4c/leader"}}/;
+                proxy_set_header Host %SERVER_NAME%;
+                proxy_pass_request_headers      on;
+        }
+}
+{{ else }}
+
+{{ end }}
