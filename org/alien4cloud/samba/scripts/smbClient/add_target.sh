@@ -1,6 +1,6 @@
 #!/bin/bash -e
 source $commons/commons.sh
-
+echo "add_target" >> /home/ec2-user/toto.log
 require_envs "MOUNT_POINT SAMBA_SERVER_IP SHARE_NAME"
 
 ## create the mounted point
