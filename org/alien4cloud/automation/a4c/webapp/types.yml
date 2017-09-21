@@ -60,8 +60,8 @@ node_types:
         type: string
         required: false
     capabilities:
-      # consul:
-      #   type: org.alien4cloud.consul.capabilities.ConsulClient
+      consul:
+        type: org.alien4cloud.consul.capabilities.ConsulClient
       # elasticsearch:
       #   type: org.alien4cloud.elasticsearch.capabilities.ElasticSearchClient
       # rest:
