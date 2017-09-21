@@ -6,7 +6,15 @@ require_envs "SHARE_PATH SHARE_NAME"
 ## create the shared path
 sudo mkdir -p $SHARE_PATH
 sudo chmod 777 $SHARE_PATH
-sudo chown nobody.nogroup $SHARE_PATH
+if [[ "$(which yum)" != "" ]]
+  then
+  echo "do nothing for now"
+elif [[ "$(which apt-get)" != "" ]]
+  then
+  sudo chown nobody.nogroup $SHARE_PATH
+fi
+
+
 
 ## build the config file
 CONFIG_FILE=/etc/samba/smb.conf
