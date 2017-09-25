@@ -1,0 +1,1551 @@
+tosca_definitions_version: alien_dsl_1_4_0
+
+metadata:
+  template_name: AlienHA
+  template_version: 0.1.0-SNAPSHOT
+  template_author: admin
+
+description: ""
+
+imports:
+  - org.alien4cloud.lang.java.jmx.jolokia:1.4.0-SNAPSHOT
+  - org.alien4cloud.automation.a4c.webapp:1.4.0-SNAPSHOT
+  - org.alien4cloud.samba:1.4.0-SNAPSHOT
+  - org.alien4cloud.lang.java.jdk.linux:1.4.0-SNAPSHOT
+  - org.alien4cloud.storage.elasticsearch.pub:1.4.0-SNAPSHOT
+  - org.alien4cloud.nginx:1.4.0-SNAPSHOT
+  - tosca-normative-types:1.0.0-ALIEN14
+  - org.alien4cloud.automation.a4c.pub:1.4.0-SNAPSHOT
+  - org.alien4cloud.lang.java.pub:1.4.0-SNAPSHOT
+  - org.alien4cloud.consul:1.4.0-SNAPSHOT
+
+repositories:
+  alien:
+    url: https://fastconnect.org/maven/content/repositories/fastconnect/alien4cloud/alien4cloud-premium-dist/1.4.1.1
+    type: http
+
+topology_template:
+  node_templates:
+    OracleJDK:
+      type: org.alien4cloud.lang.java.jdk.linux.nodes.OracleJDK
+      properties:
+        java_url: "http://52.214.10.29:8081/jdk-8u144-linux-x64.tar.gz"
+        java_home: "/opt/java"
+        component_version: "1.8.0-131-b11"
+      requirements:
+        - host:
+            node: AlienCompute
+            capability: tosca.capabilities.Container
+            relationship: tosca.relationships.HostedOn
+    ConsulClient:
+      type: org.alien4cloud.consul.nodes.ConsulClient
+      properties:
+        agent_mode: client
+        download_url: "https://releases.hashicorp.com/consul/0.6.4/consul_0.6.4_linux_amd64.zip"
+        data_dir: "/var/consul"
+        tls_enabled: false
+      requirements:
+        - consul_server:
+            node: ConsulServer
+            capability: org.alien4cloud.consul.capabilities.ConsulServer
+            relationship: org.alien4cloud.consul.relationships.JoinCluster
+        - host:
+            node: AlienCompute
+            capability: tosca.capabilities.Container
+            relationship: tosca.relationships.HostedOn
+      capabilities:
+        consul_agent:
+          properties:
+            api_port: 8500
+    Alien4Cloud:
+      type: org.alien4cloud.automation.a4c.webapp.nodes.Alien4Cloud
+      properties:
+        context_root: "/"
+        component_version: "1.4.1"
+        data_dir: "/opt/alien4cloud/data"
+      requirements:
+        - consul:
+            node: ConsulClient
+            capability: org.alien4cloud.consul.capabilities.ConsulAgent
+            relationship: org.alien4cloud.consul.relationships.ConnectToConsulAgent
+        - java:
+            node: OracleJDK
+            capability: org.alien4cloud.lang.java.pub.capabilities.JDK
+            relationship: org.alien4cloud.lang.java.pub.relationships.JavaSoftwareHostedOnJDK
+        - dependency:
+            node: SambaClient
+            capability: tosca.capabilities.Node
+            relationship: tosca.relationships.DependsOn
+      capabilities:
+        consul:
+          properties:
+            tls_enabled: false
+        jolokia:
+          properties:
+            port: 8778
+        http:
+          properties:
+            port: 9200
+            protocol: http
+            secure: false
+            network_name: PRIVATE
+            initiator: source
+        rest:
+          properties:
+            user: admin
+            password: admin
+            port: 8080
+            protocol: http
+            secure: false
+            network_name: PRIVATE
+            initiator: source
+      artifacts:
+        alien_dist:
+          file: alien4cloud-premium-dist-1.4.1.1-dist.tar.gz
+          type: tosca.artifacts.File
+          repository: alien
+    ConsulServer:
+      type: org.alien4cloud.consul.nodes.ConsulServer
+      properties:
+        agent_mode: server
+        download_url: "https://releases.hashicorp.com/consul/0.6.4/consul_0.6.4_linux_amd64.zip"
+        data_dir: "/var/consul"
+        tls_enabled: false
+      requirements:
+        - host:
+            node: ConsulCompute
+            capability: tosca.capabilities.Container
+            relationship: tosca.relationships.HostedOn
+      capabilities:
+        consul_agent:
+          properties:
+            api_port: 8500
+    AlienCompute:
+      type: tosca.nodes.Compute
+      capabilities:
+        scalable:
+          properties:
+            min_instances: 1
+            max_instances: 10
+            default_instances: 1
+        endpoint:
+          properties:
+            secure: true
+            protocol: tcp
+            network_name: PRIVATE
+            initiator: source
+    ConsulCompute:
+      type: tosca.nodes.Compute
+      capabilities:
+        scalable:
+          properties:
+            min_instances: 1
+            max_instances: 1
+            default_instances: 1
+        endpoint:
+          properties:
+            secure: true
+            protocol: tcp
+            network_name: PRIVATE
+            initiator: source
+    FrontCompute:
+      type: tosca.nodes.Compute
+      capabilities:
+        scalable:
+          properties:
+            min_instances: 1
+            max_instances: 1
+            default_instances: 1
+        endpoint:
+          properties:
+            secure: true
+            protocol: tcp
+            network_name: PRIVATE
+            initiator: source
+    ConsulClient_2:
+      type: org.alien4cloud.consul.nodes.ConsulClient
+      properties:
+        agent_mode: client
+        download_url: "https://releases.hashicorp.com/consul/0.6.4/consul_0.6.4_linux_amd64.zip"
+        data_dir: "/var/consul"
+        tls_enabled: false
+      requirements:
+        - consul_server:
+            node: ConsulServer
+            capability: org.alien4cloud.consul.capabilities.ConsulServer
+            relationship: org.alien4cloud.consul.relationships.JoinCluster
+        - host:
+            node: FrontCompute
+            capability: tosca.capabilities.Container
+            relationship: tosca.relationships.HostedOn
+      capabilities:
+        consul_agent:
+          properties:
+            api_port: 8500
+    ConsulTemplate4Nginx:
+      type: org.alien4cloud.nginx.nodes.ConsulTemplate4Nginx
+      properties:
+        download_url: "https://releases.hashicorp.com/consul-template/0.15.0/consul-template_0.15.0_linux_amd64.zip"
+        listen_port: 80
+        front_protocol: http
+        target_protocol: http
+      requirements:
+        - consul:
+            node: ConsulClient_2
+            capability: org.alien4cloud.consul.capabilities.ConsulAgent
+            relationship: org.alien4cloud.consul.relationships.ConnectToConsulAgent
+        - host:
+            node: FrontCompute
+            capability: tosca.capabilities.Container
+            relationship: tosca.relationships.HostedOn
+        - dependency:
+            node: Nginx
+            capability: tosca.capabilities.Node
+            relationship: tosca.relationships.DependsOn
+      capabilities:
+        consul:
+          properties:
+            tls_enabled: false
+    Nginx:
+      type: org.alien4cloud.nginx.nodes.Nginx
+      properties:
+        listen_port: 80
+        target_protocol: http
+        front_protocol: http
+      requirements:
+        - host:
+            node: FrontCompute
+            capability: tosca.capabilities.Container
+            relationship: tosca.relationships.HostedOn
+    SambaServer:
+      type: org.alien4cloud.samba.nodes.SambaServer
+      properties:
+        share_name: ALIEN4CLOUD
+        share_path: "/srv/samba/alien4cloud"
+      requirements:
+        - host:
+            node: SambaCompute
+            capability: tosca.capabilities.Container
+            relationship: tosca.relationships.HostedOn
+    SambaClient:
+      type: org.alien4cloud.samba.nodes.SambaClient
+      properties:
+        mount_point: "/var/alien4cloud"
+      requirements:
+        - host:
+            node: AlienCompute
+            capability: tosca.capabilities.Container
+            relationship: tosca.relationships.HostedOn
+        - smb_server:
+            node: SambaServer
+            capability: org.alien4cloud.samba.capabilities.SambaServer
+            relationship: org.alien4cloud.samba.relationships.ConnectsToSambaServer
+            properties:
+              mount_point: "/var/alien4cloud"
+    SambaCompute:
+      type: tosca.nodes.Compute
+      capabilities:
+        scalable:
+          properties:
+            min_instances: 1
+            max_instances: 1
+            default_instances: 1
+        endpoint:
+          properties:
+            secure: true
+            protocol: tcp
+            network_name: PRIVATE
+            initiator: source
+  workflows:
+    install:
+      steps:
+        Compute_install:
+          node: AlienCompute
+          activity:
+            delegate: install
+          on-success:
+            - SambaClient_initial
+            - OracleJDK_initial
+            - ConsulClient_initial
+        OracleJDK_initial:
+          node: OracleJDK
+          activity:
+            set_state: initial
+          on-success:
+            - OracleJDK_creating
+        OracleJDK_creating:
+          node: OracleJDK
+          activity:
+            set_state: creating
+          on-success:
+            - create_OracleJDK
+        create_OracleJDK:
+          node: OracleJDK
+          activity:
+            call_operation: tosca.interfaces.node.lifecycle.Standard.create
+          on-success:
+            - OracleJDK_created
+        OracleJDK_created:
+          node: OracleJDK
+          activity:
+            set_state: created
+          on-success:
+            - OracleJDK_configuring
+        OracleJDK_configuring:
+          node: OracleJDK
+          activity:
+            set_state: configuring
+          on-success:
+            - configure_OracleJDK
+        configure_OracleJDK:
+          node: OracleJDK
+          activity:
+            call_operation: tosca.interfaces.node.lifecycle.Standard.configure
+          on-success:
+            - OracleJDK_configured
+        OracleJDK_configured:
+          node: OracleJDK
+          activity:
+            set_state: configured
+          on-success:
+            - OracleJDK_starting
+        OracleJDK_starting:
+          node: OracleJDK
+          activity:
+            set_state: starting
+          on-success:
+            - start_OracleJDK
+        start_OracleJDK:
+          node: OracleJDK
+          activity:
+            call_operation: tosca.interfaces.node.lifecycle.Standard.start
+          on-success:
+            - OracleJDK_started
+        OracleJDK_started:
+          node: OracleJDK
+          activity:
+            set_state: started
+          on-success:
+            - Alien4Cloud_initial
+        Alien4Cloud_initial:
+          node: Alien4Cloud
+          activity:
+            set_state: initial
+          on-success:
+            - Alien4Cloud_creating
+        Alien4Cloud_creating:
+          node: Alien4Cloud
+          activity:
+            set_state: creating
+          on-success:
+            - create_Alien4Cloud
+        create_Alien4Cloud:
+          node: Alien4Cloud
+          activity:
+            call_operation: tosca.interfaces.node.lifecycle.Standard.create
+          on-success:
+            - Alien4Cloud_created
+        Alien4Cloud_created:
+          node: Alien4Cloud
+          activity:
+            set_state: created
+          on-success:
+            - ConsulClient_configuring
+            - SambaClient_configuring
+            - Alien4Cloud_configuring
+        Alien4Cloud_configuring:
+          node: Alien4Cloud
+          activity:
+            set_state: configuring
+          on-success:
+            - configure_Alien4Cloud
+        configure_Alien4Cloud:
+          node: Alien4Cloud
+          activity:
+            call_operation: tosca.interfaces.node.lifecycle.Standard.configure
+          on-success:
+            - Alien4Cloud_configured
+        Alien4Cloud_configured:
+          node: Alien4Cloud
+          activity:
+            set_state: configured
+          on-success:
+            - Alien4Cloud_starting
+        Alien4Cloud_starting:
+          node: Alien4Cloud
+          activity:
+            set_state: starting
+          on-success:
+            - start_Alien4Cloud
+        start_Alien4Cloud:
+          node: Alien4Cloud
+          activity:
+            call_operation: tosca.interfaces.node.lifecycle.Standard.start
+          on-success:
+            - Alien4Cloud_started
+        Alien4Cloud_started:
+          node: Alien4Cloud
+          activity:
+            set_state: started
+        Compute_2_install:
+          node: ConsulCompute
+          activity:
+            delegate: install
+          on-success:
+            - ConsulServer_initial
+        ConsulServer_initial:
+          node: ConsulServer
+          activity:
+            set_state: initial
+          on-success:
+            - ConsulServer_creating
+        ConsulServer_creating:
+          node: ConsulServer
+          activity:
+            set_state: creating
+          on-success:
+            - create_ConsulServer
+        create_ConsulServer:
+          node: ConsulServer
+          activity:
+            call_operation: tosca.interfaces.node.lifecycle.Standard.create
+          on-success:
+            - ConsulServer_created
+        ConsulServer_created:
+          node: ConsulServer
+          activity:
+            set_state: created
+          on-success:
+            - ConsulServer_configuring
+        ConsulServer_configuring:
+          node: ConsulServer
+          activity:
+            set_state: configuring
+          on-success:
+            - configure_ConsulServer
+        configure_ConsulServer:
+          node: ConsulServer
+          activity:
+            call_operation: tosca.interfaces.node.lifecycle.Standard.configure
+          on-success:
+            - ConsulServer_configured
+        ConsulServer_configured:
+          node: ConsulServer
+          activity:
+            set_state: configured
+          on-success:
+            - ConsulServer_starting
+        ConsulServer_starting:
+          node: ConsulServer
+          activity:
+            set_state: starting
+          on-success:
+            - start_ConsulServer
+        start_ConsulServer:
+          node: ConsulServer
+          activity:
+            call_operation: tosca.interfaces.node.lifecycle.Standard.start
+          on-success:
+            - ConsulServer_started
+        ConsulServer_started:
+          node: ConsulServer
+          activity:
+            set_state: started
+          on-success:
+            - ConsulClient_configuring
+            - ConsulClient_2_configuring
+        ConsulClient_initial:
+          node: ConsulClient
+          activity:
+            set_state: initial
+          on-success:
+            - ConsulClient_creating
+        ConsulClient_creating:
+          node: ConsulClient
+          activity:
+            set_state: creating
+          on-success:
+            - create_ConsulClient
+        create_ConsulClient:
+          node: ConsulClient
+          activity:
+            call_operation: tosca.interfaces.node.lifecycle.Standard.create
+          on-success:
+            - ConsulClient_created
+        ConsulClient_created:
+          node: ConsulClient
+          activity:
+            set_state: created
+          on-success:
+            - ConsulServer_configuring
+            - ConsulClient_configuring
+        ConsulClient_configuring:
+          node: ConsulClient
+          activity:
+            set_state: configuring
+          on-success:
+            - configure_ConsulClient
+        configure_ConsulClient:
+          node: ConsulClient
+          activity:
+            call_operation: tosca.interfaces.node.lifecycle.Standard.configure
+          on-success:
+            - ConsulClient_configured
+        ConsulClient_configured:
+          node: ConsulClient
+          activity:
+            set_state: configured
+          on-success:
+            - ConsulClient_starting
+        ConsulClient_starting:
+          node: ConsulClient
+          activity:
+            set_state: starting
+          on-success:
+            - start_ConsulClient
+        start_ConsulClient:
+          node: ConsulClient
+          activity:
+            call_operation: tosca.interfaces.node.lifecycle.Standard.start
+          on-success:
+            - ConsulClient_started
+        ConsulClient_started:
+          node: ConsulClient
+          activity:
+            set_state: started
+          on-success:
+            - Alien4Cloud_configuring
+        Compute_3_install:
+          node: FrontCompute
+          activity:
+            delegate: install
+          on-success:
+            - ConsulClient_2_initial
+            - ConsulTemplate4Nginx_initial
+            - Nginx_initial
+        ConsulClient_2_initial:
+          node: ConsulClient_2
+          activity:
+            set_state: initial
+          on-success:
+            - ConsulClient_2_creating
+        ConsulClient_2_creating:
+          node: ConsulClient_2
+          activity:
+            set_state: creating
+          on-success:
+            - create_ConsulClient_2
+        create_ConsulClient_2:
+          node: ConsulClient_2
+          activity:
+            call_operation: tosca.interfaces.node.lifecycle.Standard.create
+          on-success:
+            - ConsulClient_2_created
+        ConsulClient_2_created:
+          node: ConsulClient_2
+          activity:
+            set_state: created
+          on-success:
+            - ConsulServer_configuring
+            - ConsulClient_2_configuring
+        ConsulClient_2_configuring:
+          node: ConsulClient_2
+          activity:
+            set_state: configuring
+          on-success:
+            - configure_ConsulClient_2
+        configure_ConsulClient_2:
+          node: ConsulClient_2
+          activity:
+            call_operation: tosca.interfaces.node.lifecycle.Standard.configure
+          on-success:
+            - ConsulClient_2_configured
+        ConsulClient_2_configured:
+          node: ConsulClient_2
+          activity:
+            set_state: configured
+          on-success:
+            - ConsulClient_2_starting
+        ConsulClient_2_starting:
+          node: ConsulClient_2
+          activity:
+            set_state: starting
+          on-success:
+            - start_ConsulClient_2
+        start_ConsulClient_2:
+          node: ConsulClient_2
+          activity:
+            call_operation: tosca.interfaces.node.lifecycle.Standard.start
+          on-success:
+            - ConsulClient_2_started
+        ConsulClient_2_started:
+          node: ConsulClient_2
+          activity:
+            set_state: started
+          on-success:
+            - ConsulTemplate4Nginx_configuring
+        ConsulTemplate4Nginx_initial:
+          node: ConsulTemplate4Nginx
+          activity:
+            set_state: initial
+          on-success:
+            - ConsulTemplate4Nginx_creating
+        ConsulTemplate4Nginx_creating:
+          node: ConsulTemplate4Nginx
+          activity:
+            set_state: creating
+          on-success:
+            - create_ConsulTemplate4Nginx
+        create_ConsulTemplate4Nginx:
+          node: ConsulTemplate4Nginx
+          activity:
+            call_operation: tosca.interfaces.node.lifecycle.Standard.create
+          on-success:
+            - ConsulTemplate4Nginx_created
+        ConsulTemplate4Nginx_created:
+          node: ConsulTemplate4Nginx
+          activity:
+            set_state: created
+          on-success:
+            - ConsulTemplate4Nginx_configuring
+            - ConsulClient_2_configuring
+            - Nginx_configuring
+        ConsulTemplate4Nginx_configuring:
+          node: ConsulTemplate4Nginx
+          activity:
+            set_state: configuring
+          on-success:
+            - configure_ConsulTemplate4Nginx
+        configure_ConsulTemplate4Nginx:
+          node: ConsulTemplate4Nginx
+          activity:
+            call_operation: tosca.interfaces.node.lifecycle.Standard.configure
+          on-success:
+            - ConsulTemplate4Nginx_configured
+        ConsulTemplate4Nginx_configured:
+          node: ConsulTemplate4Nginx
+          activity:
+            set_state: configured
+          on-success:
+            - ConsulTemplate4Nginx_starting
+        ConsulTemplate4Nginx_starting:
+          node: ConsulTemplate4Nginx
+          activity:
+            set_state: starting
+          on-success:
+            - start_ConsulTemplate4Nginx
+        start_ConsulTemplate4Nginx:
+          node: ConsulTemplate4Nginx
+          activity:
+            call_operation: tosca.interfaces.node.lifecycle.Standard.start
+          on-success:
+            - ConsulTemplate4Nginx_started
+        ConsulTemplate4Nginx_started:
+          node: ConsulTemplate4Nginx
+          activity:
+            set_state: started
+        Nginx_initial:
+          node: Nginx
+          activity:
+            set_state: initial
+          on-success:
+            - Nginx_creating
+        Nginx_creating:
+          node: Nginx
+          activity:
+            set_state: creating
+          on-success:
+            - create_Nginx
+        create_Nginx:
+          node: Nginx
+          activity:
+            call_operation: tosca.interfaces.node.lifecycle.Standard.create
+          on-success:
+            - Nginx_created
+        Nginx_created:
+          node: Nginx
+          activity:
+            set_state: created
+          on-success:
+            - Nginx_configuring
+        Nginx_configuring:
+          node: Nginx
+          activity:
+            set_state: configuring
+          on-success:
+            - configure_Nginx
+        configure_Nginx:
+          node: Nginx
+          activity:
+            call_operation: tosca.interfaces.node.lifecycle.Standard.configure
+          on-success:
+            - Nginx_configured
+        Nginx_configured:
+          node: Nginx
+          activity:
+            set_state: configured
+          on-success:
+            - Nginx_starting
+        Nginx_starting:
+          node: Nginx
+          activity:
+            set_state: starting
+          on-success:
+            - start_Nginx
+        start_Nginx:
+          node: Nginx
+          activity:
+            call_operation: tosca.interfaces.node.lifecycle.Standard.start
+          on-success:
+            - Nginx_started
+        Nginx_started:
+          node: Nginx
+          activity:
+            set_state: started
+          on-success:
+            - ConsulTemplate4Nginx_configuring
+        Compute_install_1:
+          node: SambaCompute
+          activity:
+            delegate: install
+          on-success:
+            - SambaServer_initial
+        SambaServer_initial:
+          node: SambaServer
+          activity:
+            set_state: initial
+          on-success:
+            - SambaServer_creating
+        SambaServer_creating:
+          node: SambaServer
+          activity:
+            set_state: creating
+          on-success:
+            - create_SambaServer
+        create_SambaServer:
+          node: SambaServer
+          activity:
+            call_operation: tosca.interfaces.node.lifecycle.Standard.create
+          on-success:
+            - SambaServer_created
+        SambaServer_created:
+          node: SambaServer
+          activity:
+            set_state: created
+          on-success:
+            - SambaServer_configuring
+        SambaServer_configuring:
+          node: SambaServer
+          activity:
+            set_state: configuring
+          on-success:
+            - configure_SambaServer
+        configure_SambaServer:
+          node: SambaServer
+          activity:
+            call_operation: tosca.interfaces.node.lifecycle.Standard.configure
+          on-success:
+            - SambaServer_configured
+        SambaServer_configured:
+          node: SambaServer
+          activity:
+            set_state: configured
+          on-success:
+            - SambaServer_starting
+        SambaServer_starting:
+          node: SambaServer
+          activity:
+            set_state: starting
+          on-success:
+            - start_SambaServer
+        start_SambaServer:
+          node: SambaServer
+          activity:
+            call_operation: tosca.interfaces.node.lifecycle.Standard.start
+          on-success:
+            - SambaServer_started
+        SambaServer_started:
+          node: SambaServer
+          activity:
+            set_state: started
+          on-success:
+            - SambaClient_configuring
+        SambaClient_initial:
+          node: SambaClient
+          activity:
+            set_state: initial
+          on-success:
+            - SambaClient_creating
+        SambaClient_creating:
+          node: SambaClient
+          activity:
+            set_state: creating
+          on-success:
+            - create_SambaClient
+        create_SambaClient:
+          node: SambaClient
+          activity:
+            call_operation: tosca.interfaces.node.lifecycle.Standard.create
+          on-success:
+            - SambaClient_created
+        SambaClient_created:
+          node: SambaClient
+          activity:
+            set_state: created
+          on-success:
+            - SambaClient_configuring
+            - SambaServer_configuring
+        SambaClient_configuring:
+          node: SambaClient
+          activity:
+            set_state: configuring
+          on-success:
+            - configure_SambaClient
+        configure_SambaClient:
+          node: SambaClient
+          activity:
+            call_operation: tosca.interfaces.node.lifecycle.Standard.configure
+          on-success:
+            - SambaClient_configured
+        SambaClient_configured:
+          node: SambaClient
+          activity:
+            set_state: configured
+          on-success:
+            - SambaClient_starting
+        SambaClient_starting:
+          node: SambaClient
+          activity:
+            set_state: starting
+          on-success:
+            - start_SambaClient
+        start_SambaClient:
+          node: SambaClient
+          activity:
+            call_operation: tosca.interfaces.node.lifecycle.Standard.start
+          on-success:
+            - SambaClient_started
+        SambaClient_started:
+          node: SambaClient
+          activity:
+            set_state: started
+          on-success:
+            - Alien4Cloud_configuring
+    uninstall:
+      steps:
+        Compute_uninstall:
+          node: AlienCompute
+          activity:
+            delegate: uninstall
+        OracleJDK_stopping:
+          node: OracleJDK
+          activity:
+            set_state: stopping
+          on-success:
+            - stop_OracleJDK
+        stop_OracleJDK:
+          node: OracleJDK
+          activity:
+            call_operation: tosca.interfaces.node.lifecycle.Standard.stop
+          on-success:
+            - OracleJDK_stopped
+        OracleJDK_stopped:
+          node: OracleJDK
+          activity:
+            set_state: stopped
+          on-success:
+            - OracleJDK_deleting
+        OracleJDK_deleting:
+          node: OracleJDK
+          activity:
+            set_state: deleting
+          on-success:
+            - delete_OracleJDK
+        delete_OracleJDK:
+          node: OracleJDK
+          activity:
+            call_operation: tosca.interfaces.node.lifecycle.Standard.delete
+          on-success:
+            - OracleJDK_deleted
+        OracleJDK_deleted:
+          node: OracleJDK
+          activity:
+            set_state: deleted
+          on-success:
+            - Compute_uninstall
+        Alien4Cloud_stopping:
+          node: Alien4Cloud
+          activity:
+            set_state: stopping
+          on-success:
+            - stop_Alien4Cloud
+        stop_Alien4Cloud:
+          node: Alien4Cloud
+          activity:
+            call_operation: tosca.interfaces.node.lifecycle.Standard.stop
+          on-success:
+            - Alien4Cloud_stopped
+        Alien4Cloud_stopped:
+          node: Alien4Cloud
+          activity:
+            set_state: stopped
+          on-success:
+            - ConsulClient_stopping
+            - SambaClient_stopping
+            - Alien4Cloud_deleting
+        Alien4Cloud_deleting:
+          node: Alien4Cloud
+          activity:
+            set_state: deleting
+          on-success:
+            - delete_Alien4Cloud
+        delete_Alien4Cloud:
+          node: Alien4Cloud
+          activity:
+            call_operation: tosca.interfaces.node.lifecycle.Standard.delete
+          on-success:
+            - Alien4Cloud_deleted
+        Alien4Cloud_deleted:
+          node: Alien4Cloud
+          activity:
+            set_state: deleted
+          on-success:
+            - OracleJDK_stopping
+        Compute_2_uninstall:
+          node: ConsulCompute
+          activity:
+            delegate: uninstall
+        ConsulServer_stopping:
+          node: ConsulServer
+          activity:
+            set_state: stopping
+          on-success:
+            - stop_ConsulServer
+        stop_ConsulServer:
+          node: ConsulServer
+          activity:
+            call_operation: tosca.interfaces.node.lifecycle.Standard.stop
+          on-success:
+            - ConsulServer_stopped
+        ConsulServer_stopped:
+          node: ConsulServer
+          activity:
+            set_state: stopped
+          on-success:
+            - ConsulServer_deleting
+        ConsulServer_deleting:
+          node: ConsulServer
+          activity:
+            set_state: deleting
+          on-success:
+            - delete_ConsulServer
+        delete_ConsulServer:
+          node: ConsulServer
+          activity:
+            call_operation: tosca.interfaces.node.lifecycle.Standard.delete
+          on-success:
+            - ConsulServer_deleted
+        ConsulServer_deleted:
+          node: ConsulServer
+          activity:
+            set_state: deleted
+          on-success:
+            - Compute_2_uninstall
+        ConsulClient_stopping:
+          node: ConsulClient
+          activity:
+            set_state: stopping
+          on-success:
+            - stop_ConsulClient
+        stop_ConsulClient:
+          node: ConsulClient
+          activity:
+            call_operation: tosca.interfaces.node.lifecycle.Standard.stop
+          on-success:
+            - ConsulClient_stopped
+        ConsulClient_stopped:
+          node: ConsulClient
+          activity:
+            set_state: stopped
+          on-success:
+            - ConsulClient_deleting
+            - ConsulServer_stopping
+        ConsulClient_deleting:
+          node: ConsulClient
+          activity:
+            set_state: deleting
+          on-success:
+            - delete_ConsulClient
+        delete_ConsulClient:
+          node: ConsulClient
+          activity:
+            call_operation: tosca.interfaces.node.lifecycle.Standard.delete
+          on-success:
+            - ConsulClient_deleted
+        ConsulClient_deleted:
+          node: ConsulClient
+          activity:
+            set_state: deleted
+          on-success:
+            - Compute_uninstall
+        Compute_3_uninstall:
+          node: FrontCompute
+          activity:
+            delegate: uninstall
+        ConsulClient_2_stopping:
+          node: ConsulClient_2
+          activity:
+            set_state: stopping
+          on-success:
+            - stop_ConsulClient_2
+        stop_ConsulClient_2:
+          node: ConsulClient_2
+          activity:
+            call_operation: tosca.interfaces.node.lifecycle.Standard.stop
+          on-success:
+            - ConsulClient_2_stopped
+        ConsulClient_2_stopped:
+          node: ConsulClient_2
+          activity:
+            set_state: stopped
+          on-success:
+            - ConsulServer_stopping
+            - ConsulClient_2_deleting
+        ConsulClient_2_deleting:
+          node: ConsulClient_2
+          activity:
+            set_state: deleting
+          on-success:
+            - delete_ConsulClient_2
+        delete_ConsulClient_2:
+          node: ConsulClient_2
+          activity:
+            call_operation: tosca.interfaces.node.lifecycle.Standard.delete
+          on-success:
+            - ConsulClient_2_deleted
+        ConsulClient_2_deleted:
+          node: ConsulClient_2
+          activity:
+            set_state: deleted
+          on-success:
+            - Compute_3_uninstall
+        ConsulTemplate4Nginx_stopping:
+          node: ConsulTemplate4Nginx
+          activity:
+            set_state: stopping
+          on-success:
+            - stop_ConsulTemplate4Nginx
+        stop_ConsulTemplate4Nginx:
+          node: ConsulTemplate4Nginx
+          activity:
+            call_operation: tosca.interfaces.node.lifecycle.Standard.stop
+          on-success:
+            - ConsulTemplate4Nginx_stopped
+        ConsulTemplate4Nginx_stopped:
+          node: ConsulTemplate4Nginx
+          activity:
+            set_state: stopped
+          on-success:
+            - ConsulTemplate4Nginx_deleting
+            - ConsulClient_2_stopping
+            - Nginx_stopping
+        ConsulTemplate4Nginx_deleting:
+          node: ConsulTemplate4Nginx
+          activity:
+            set_state: deleting
+          on-success:
+            - delete_ConsulTemplate4Nginx
+        delete_ConsulTemplate4Nginx:
+          node: ConsulTemplate4Nginx
+          activity:
+            call_operation: tosca.interfaces.node.lifecycle.Standard.delete
+          on-success:
+            - ConsulTemplate4Nginx_deleted
+        ConsulTemplate4Nginx_deleted:
+          node: ConsulTemplate4Nginx
+          activity:
+            set_state: deleted
+          on-success:
+            - Compute_3_uninstall
+        Nginx_stopping:
+          node: Nginx
+          activity:
+            set_state: stopping
+          on-success:
+            - stop_Nginx
+        stop_Nginx:
+          node: Nginx
+          activity:
+            call_operation: tosca.interfaces.node.lifecycle.Standard.stop
+          on-success:
+            - Nginx_stopped
+        Nginx_stopped:
+          node: Nginx
+          activity:
+            set_state: stopped
+          on-success:
+            - Nginx_deleting
+        Nginx_deleting:
+          node: Nginx
+          activity:
+            set_state: deleting
+          on-success:
+            - delete_Nginx
+        delete_Nginx:
+          node: Nginx
+          activity:
+            call_operation: tosca.interfaces.node.lifecycle.Standard.delete
+          on-success:
+            - Nginx_deleted
+        Nginx_deleted:
+          node: Nginx
+          activity:
+            set_state: deleted
+          on-success:
+            - Compute_3_uninstall
+        Compute_uninstall_1:
+          node: SambaCompute
+          activity:
+            delegate: uninstall
+        SambaServer_stopping:
+          node: SambaServer
+          activity:
+            set_state: stopping
+          on-success:
+            - stop_SambaServer
+        stop_SambaServer:
+          node: SambaServer
+          activity:
+            call_operation: tosca.interfaces.node.lifecycle.Standard.stop
+          on-success:
+            - SambaServer_stopped
+        SambaServer_stopped:
+          node: SambaServer
+          activity:
+            set_state: stopped
+          on-success:
+            - SambaServer_deleting
+        SambaServer_deleting:
+          node: SambaServer
+          activity:
+            set_state: deleting
+          on-success:
+            - delete_SambaServer
+        delete_SambaServer:
+          node: SambaServer
+          activity:
+            call_operation: tosca.interfaces.node.lifecycle.Standard.delete
+          on-success:
+            - SambaServer_deleted
+        SambaServer_deleted:
+          node: SambaServer
+          activity:
+            set_state: deleted
+          on-success:
+            - Compute_uninstall_1
+        SambaClient_stopping:
+          node: SambaClient
+          activity:
+            set_state: stopping
+          on-success:
+            - stop_SambaClient
+        stop_SambaClient:
+          node: SambaClient
+          activity:
+            call_operation: tosca.interfaces.node.lifecycle.Standard.stop
+          on-success:
+            - SambaClient_stopped
+        SambaClient_stopped:
+          node: SambaClient
+          activity:
+            set_state: stopped
+          on-success:
+            - SambaClient_deleting
+            - SambaServer_stopping
+        SambaClient_deleting:
+          node: SambaClient
+          activity:
+            set_state: deleting
+          on-success:
+            - delete_SambaClient
+        delete_SambaClient:
+          node: SambaClient
+          activity:
+            call_operation: tosca.interfaces.node.lifecycle.Standard.delete
+          on-success:
+            - SambaClient_deleted
+        SambaClient_deleted:
+          node: SambaClient
+          activity:
+            set_state: deleted
+          on-success:
+            - Compute_uninstall
+    start:
+      steps:
+        Compute_start:
+          node: AlienCompute
+          activity:
+            delegate: start
+          on-success:
+            - ConsulClient_starting
+            - OracleJDK_starting
+            - SambaClient_starting
+        OracleJDK_starting:
+          node: OracleJDK
+          activity:
+            set_state: starting
+          on-success:
+            - start_OracleJDK
+        start_OracleJDK:
+          node: OracleJDK
+          activity:
+            call_operation: tosca.interfaces.node.lifecycle.Standard.start
+          on-success:
+            - OracleJDK_started
+        OracleJDK_started:
+          node: OracleJDK
+          activity:
+            set_state: started
+          on-success:
+            - Alien4Cloud_starting
+        Alien4Cloud_starting:
+          node: Alien4Cloud
+          activity:
+            set_state: starting
+          on-success:
+            - start_Alien4Cloud
+        start_Alien4Cloud:
+          node: Alien4Cloud
+          activity:
+            call_operation: tosca.interfaces.node.lifecycle.Standard.start
+          on-success:
+            - Alien4Cloud_started
+        Alien4Cloud_started:
+          node: Alien4Cloud
+          activity:
+            set_state: started
+        Compute_2_start:
+          node: ConsulCompute
+          activity:
+            delegate: start
+          on-success:
+            - ConsulServer_starting
+        ConsulServer_starting:
+          node: ConsulServer
+          activity:
+            set_state: starting
+          on-success:
+            - start_ConsulServer
+        start_ConsulServer:
+          node: ConsulServer
+          activity:
+            call_operation: tosca.interfaces.node.lifecycle.Standard.start
+          on-success:
+            - ConsulServer_started
+        ConsulServer_started:
+          node: ConsulServer
+          activity:
+            set_state: started
+          on-success:
+            - ConsulClient_starting
+            - ConsulClient_2_starting
+        ConsulClient_starting:
+          node: ConsulClient
+          activity:
+            set_state: starting
+          on-success:
+            - start_ConsulClient
+        start_ConsulClient:
+          node: ConsulClient
+          activity:
+            call_operation: tosca.interfaces.node.lifecycle.Standard.start
+          on-success:
+            - ConsulClient_started
+        ConsulClient_started:
+          node: ConsulClient
+          activity:
+            set_state: started
+          on-success:
+            - Alien4Cloud_starting
+        Compute_3_start:
+          node: FrontCompute
+          activity:
+            delegate: start
+          on-success:
+            - ConsulClient_2_starting
+            - ConsulTemplate4Nginx_starting
+            - Nginx_starting
+        ConsulClient_2_starting:
+          node: ConsulClient_2
+          activity:
+            set_state: starting
+          on-success:
+            - start_ConsulClient_2
+        start_ConsulClient_2:
+          node: ConsulClient_2
+          activity:
+            call_operation: tosca.interfaces.node.lifecycle.Standard.start
+          on-success:
+            - ConsulClient_2_started
+        ConsulClient_2_started:
+          node: ConsulClient_2
+          activity:
+            set_state: started
+          on-success:
+            - ConsulTemplate4Nginx_starting
+        ConsulTemplate4Nginx_starting:
+          node: ConsulTemplate4Nginx
+          activity:
+            set_state: starting
+          on-success:
+            - start_ConsulTemplate4Nginx
+        start_ConsulTemplate4Nginx:
+          node: ConsulTemplate4Nginx
+          activity:
+            call_operation: tosca.interfaces.node.lifecycle.Standard.start
+          on-success:
+            - ConsulTemplate4Nginx_started
+        ConsulTemplate4Nginx_started:
+          node: ConsulTemplate4Nginx
+          activity:
+            set_state: started
+        Nginx_starting:
+          node: Nginx
+          activity:
+            set_state: starting
+          on-success:
+            - start_Nginx
+        start_Nginx:
+          node: Nginx
+          activity:
+            call_operation: tosca.interfaces.node.lifecycle.Standard.start
+          on-success:
+            - Nginx_started
+        Nginx_started:
+          node: Nginx
+          activity:
+            set_state: started
+          on-success:
+            - ConsulTemplate4Nginx_starting
+        Compute_start_1:
+          node: SambaCompute
+          activity:
+            delegate: start
+          on-success:
+            - SambaServer_starting
+        SambaServer_starting:
+          node: SambaServer
+          activity:
+            set_state: starting
+          on-success:
+            - start_SambaServer
+        start_SambaServer:
+          node: SambaServer
+          activity:
+            call_operation: tosca.interfaces.node.lifecycle.Standard.start
+          on-success:
+            - SambaServer_started
+        SambaServer_started:
+          node: SambaServer
+          activity:
+            set_state: started
+          on-success:
+            - SambaClient_starting
+        SambaClient_starting:
+          node: SambaClient
+          activity:
+            set_state: starting
+          on-success:
+            - start_SambaClient
+        start_SambaClient:
+          node: SambaClient
+          activity:
+            call_operation: tosca.interfaces.node.lifecycle.Standard.start
+          on-success:
+            - SambaClient_started
+        SambaClient_started:
+          node: SambaClient
+          activity:
+            set_state: started
+          on-success:
+            - Alien4Cloud_starting
+    stop:
+      steps:
+        Compute_stop:
+          node: AlienCompute
+          activity:
+            delegate: stop
+        OracleJDK_stopping:
+          node: OracleJDK
+          activity:
+            set_state: stopping
+          on-success:
+            - stop_OracleJDK
+        stop_OracleJDK:
+          node: OracleJDK
+          activity:
+            call_operation: tosca.interfaces.node.lifecycle.Standard.stop
+          on-success:
+            - OracleJDK_stopped
+        OracleJDK_stopped:
+          node: OracleJDK
+          activity:
+            set_state: stopped
+          on-success:
+            - Compute_stop
+        Alien4Cloud_stopping:
+          node: Alien4Cloud
+          activity:
+            set_state: stopping
+          on-success:
+            - stop_Alien4Cloud
+        stop_Alien4Cloud:
+          node: Alien4Cloud
+          activity:
+            call_operation: tosca.interfaces.node.lifecycle.Standard.stop
+          on-success:
+            - Alien4Cloud_stopped
+        Alien4Cloud_stopped:
+          node: Alien4Cloud
+          activity:
+            set_state: stopped
+          on-success:
+            - OracleJDK_stopping
+        Compute_2_stop:
+          node: ConsulCompute
+          activity:
+            delegate: stop
+        ConsulServer_stopping:
+          node: ConsulServer
+          activity:
+            set_state: stopping
+          on-success:
+            - stop_ConsulServer
+        stop_ConsulServer:
+          node: ConsulServer
+          activity:
+            call_operation: tosca.interfaces.node.lifecycle.Standard.stop
+          on-success:
+            - ConsulServer_stopped
+        ConsulServer_stopped:
+          node: ConsulServer
+          activity:
+            set_state: stopped
+          on-success:
+            - Compute_2_stop
+        ConsulClient_stopping:
+          node: ConsulClient
+          activity:
+            set_state: stopping
+          on-success:
+            - stop_ConsulClient
+        stop_ConsulClient:
+          node: ConsulClient
+          activity:
+            call_operation: tosca.interfaces.node.lifecycle.Standard.stop
+          on-success:
+            - ConsulClient_stopped
+        ConsulClient_stopped:
+          node: ConsulClient
+          activity:
+            set_state: stopped
+          on-success:
+            - Compute_stop
+        Compute_3_stop:
+          node: FrontCompute
+          activity:
+            delegate: stop
+        ConsulClient_2_stopping:
+          node: ConsulClient_2
+          activity:
+            set_state: stopping
+          on-success:
+            - stop_ConsulClient_2
+        stop_ConsulClient_2:
+          node: ConsulClient_2
+          activity:
+            call_operation: tosca.interfaces.node.lifecycle.Standard.stop
+          on-success:
+            - ConsulClient_2_stopped
+        ConsulClient_2_stopped:
+          node: ConsulClient_2
+          activity:
+            set_state: stopped
+          on-success:
+            - Compute_3_stop
+        ConsulTemplate4Nginx_stopping:
+          node: ConsulTemplate4Nginx
+          activity:
+            set_state: stopping
+          on-success:
+            - stop_ConsulTemplate4Nginx
+        stop_ConsulTemplate4Nginx:
+          node: ConsulTemplate4Nginx
+          activity:
+            call_operation: tosca.interfaces.node.lifecycle.Standard.stop
+          on-success:
+            - ConsulTemplate4Nginx_stopped
+        ConsulTemplate4Nginx_stopped:
+          node: ConsulTemplate4Nginx
+          activity:
+            set_state: stopped
+          on-success:
+            - Compute_3_stop
+        Nginx_stopping:
+          node: Nginx
+          activity:
+            set_state: stopping
+          on-success:
+            - stop_Nginx
+        stop_Nginx:
+          node: Nginx
+          activity:
+            call_operation: tosca.interfaces.node.lifecycle.Standard.stop
+          on-success:
+            - Nginx_stopped
+        Nginx_stopped:
+          node: Nginx
+          activity:
+            set_state: stopped
+          on-success:
+            - Compute_3_stop
+        Compute_stop_1:
+          node: SambaCompute
+          activity:
+            delegate: stop
+        SambaServer_stopping:
+          node: SambaServer
+          activity:
+            set_state: stopping
+          on-success:
+            - stop_SambaServer
+        stop_SambaServer:
+          node: SambaServer
+          activity:
+            call_operation: tosca.interfaces.node.lifecycle.Standard.stop
+          on-success:
+            - SambaServer_stopped
+        SambaServer_stopped:
+          node: SambaServer
+          activity:
+            set_state: stopped
+          on-success:
+            - Compute_stop_1
+        SambaClient_stopping:
+          node: SambaClient
+          activity:
+            set_state: stopping
+          on-success:
+            - stop_SambaClient
+        stop_SambaClient:
+          node: SambaClient
+          activity:
+            call_operation: tosca.interfaces.node.lifecycle.Standard.stop
+          on-success:
+            - SambaClient_stopped
+        SambaClient_stopped:
+          node: SambaClient
+          activity:
+            set_state: stopped
+          on-success:
+            - Compute_stop
